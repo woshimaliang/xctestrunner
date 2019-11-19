@@ -159,7 +159,8 @@ class XctestRun(object):
     command = ['xcodebuild', 'test-without-building',
                '-xctestrun', self._xctestrun_file_path,
                '-destination', 'id=%s' % device_id,
-               '-derivedDataPath', derived_data_dir]
+               '-derivedDataPath', derived_data_dir,
+               '-resultBundlePath', '/tmp/test.xcresult']
     if destination_timeout_sec:
       command.extend(['-destination-timeout', str(destination_timeout_sec)])
     exit_code, _ = xcodebuild_test_executor.XcodebuildTestExecutor(
