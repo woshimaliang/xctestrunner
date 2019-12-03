@@ -155,12 +155,25 @@ class XctestRun(object):
     Returns:
       A value of type runner_exit_codes.EXITCODE.
     """
-    logging.info('Running test-without-building with device %s', device_id)
+    run_envs = dict(os.environ)
+    testOutputsDir = run_envs['TEST_UNDECLARED_OUTPUTS_DIR'] #test.outputs
+    outputDir, _ = os.path.split(testOutputsDir)
+    _, testTarget = os.path.split(outputDir)
+    testBundlePath = os.path.join(outputDir, testTarget + '.xcresult')
+    testBundlePathZip = os.path.join(outputDir, testTarget + '.xcresult.zip')
+    
+    logging.info('deleting previous test.xcresult if exits')
+    if os.path.exists(testBundlePathZip):
+        os.remove(testBundlePathZip)
+    if os.path.exists(testBundlePath):
+        shutil.rmtree(testBundlePath)
+    
     command = ['xcodebuild', 'test-without-building',
                '-xctestrun', self._xctestrun_file_path,
                '-destination', 'id=%s' % device_id,
                '-derivedDataPath', derived_data_dir,
-               '-resultBundlePath', '/tmp/test.xcresult']
+               '-resultBundlePath', testBundlePath]
+               
     if destination_timeout_sec:
       command.extend(['-destination-timeout', str(destination_timeout_sec)])
     exit_code, _ = xcodebuild_test_executor.XcodebuildTestExecutor(
@@ -173,6 +186,12 @@ class XctestRun(object):
         app_bundle_id=self._aut_bundle_id,
         startup_timeout_sec=startup_timeout_sec).Execute(
             return_output=False)
+            
+    logging.info('compressing test.xcresult now')
+    if os.path.exists(testBundlePath):
+        shutil.make_archive(testBundlePath, 'zip', outputDir, testTarget + '.xcresult')
+    #os.system('zip -FSr test.xcresult.zip . -i test.xcresult')
+            
     return exit_code
 
   @property
