@@ -155,15 +155,16 @@ class XctestRun(object):
     Returns:
       A value of type runner_exit_codes.EXITCODE.
     """
+    logging.info('Running test-without-building with device %s', device_id)
+    
     run_envs = dict(os.environ)
     testOutputsDir = run_envs['TEST_UNDECLARED_OUTPUTS_DIR'] #test.outputs
     outputDir, _ = os.path.split(testOutputsDir)
-    #_, testTarget = os.path.split(outputDir)
     resultBundleName = 'test'
     resultBundlePath = os.path.join(outputDir, resultBundleName + '.xcresult')
     resultBundlePathZip = os.path.join(outputDir, resultBundleName + '.xcresult.zip')
     
-    logging.info('deleting previous test.xcresult if exits')
+    logging.info('deleting previous test.xcresult if exists otherwise xcodebuild would complain')
     if os.path.exists(resultBundlePathZip):
         os.remove(resultBundlePathZip)
     if os.path.exists(resultBundlePath):
@@ -191,7 +192,6 @@ class XctestRun(object):
     logging.info('compressing test.xcresult now')
     if os.path.exists(resultBundlePath):
         shutil.make_archive(resultBundlePath, 'zip', outputDir, resultBundleName + '.xcresult')
-        #os.system('zip -FSr test.xcresult.zip . -i test.xcresult')
             
     return exit_code
 
