@@ -19,12 +19,12 @@ import os
 import shutil
 import tempfile
 
-from xctestrunner.shared import bundle_util
-from xctestrunner.shared import ios_constants
-from xctestrunner.shared import ios_errors
-from xctestrunner.shared import plist_util
-from xctestrunner.shared import xcode_info_util
-from xctestrunner.test_runner import xcodebuild_test_executor
+from shared import bundle_util
+from shared import ios_constants
+from shared import ios_errors
+from shared import plist_util
+from shared import xcode_info_util
+from test_runner import xcodebuild_test_executor
 
 
 TESTROOT_RELATIVE_PATH = '__TESTROOT__'
@@ -156,10 +156,26 @@ class XctestRun(object):
       A value of type runner_exit_codes.EXITCODE.
     """
     logging.info('Running test-without-building with device %s', device_id)
+    
+    run_envs = dict(os.environ)
+    testOutputsDir = run_envs['TEST_UNDECLARED_OUTPUTS_DIR'] #test.outputs
+    outputDir, _ = os.path.split(testOutputsDir)
+    resultBundleName = 'test'
+    resultBundlePath = os.path.join(outputDir, resultBundleName + '.xcresult')
+    resultBundlePathZip = os.path.join(outputDir, resultBundleName + '.xcresult.zip')
+    
+    logging.info('deleting previous test.xcresult if exists otherwise xcodebuild would complain')
+    if os.path.exists(resultBundlePathZip):
+        os.remove(resultBundlePathZip)
+    if os.path.exists(resultBundlePath):
+        shutil.rmtree(resultBundlePath)
+    
     command = ['xcodebuild', 'test-without-building',
                '-xctestrun', self._xctestrun_file_path,
                '-destination', 'id=%s' % device_id,
-               '-derivedDataPath', derived_data_dir]
+               '-derivedDataPath', derived_data_dir,
+               '-resultBundlePath', resultBundlePath]
+               
     if destination_timeout_sec:
       command.extend(['-destination-timeout', str(destination_timeout_sec)])
     exit_code, _ = xcodebuild_test_executor.XcodebuildTestExecutor(
@@ -172,6 +188,15 @@ class XctestRun(object):
         app_bundle_id=self._aut_bundle_id,
         startup_timeout_sec=startup_timeout_sec).Execute(
             return_output=False)
+            
+    logging.info('compressing test.xcresult now')
+    if os.path.exists(resultBundlePath):
+        shutil.make_archive(resultBundlePath, 'zip', outputDir, resultBundleName + '.xcresult')
+       
+    logging.info('deleting generated test.xcresult to be safe')
+    if os.path.exists(resultBundlePath):
+        shutil.rmtree(resultBundlePath)
+    
     return exit_code
 
   @property
