@@ -192,7 +192,11 @@ class XctestRun(object):
     logging.info('compressing test.xcresult now')
     if os.path.exists(resultBundlePath):
         shutil.make_archive(resultBundlePath, 'zip', outputDir, resultBundleName + '.xcresult')
-            
+       
+    logging.info('deleting generated test.xcresult to be safe')
+    if os.path.exists(resultBundlePath):
+        shutil.rmtree(resultBundlePath)
+    
     return exit_code
 
   @property
